@@ -1,7 +1,7 @@
 #                    D0
 ####     An ASM image for Docker hosting. 
 
-# Live Neural System (LNS)
+# Live Neural System (D0)
 > A self-learning, self-healing x86_64 assembly system with neural network integration
 
 ## 🧬 Overview

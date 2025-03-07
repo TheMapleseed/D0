@@ -2,10 +2,11 @@
 ####     An ASM image for Docker hosting. 
 
 # Live Neural System (D0)
-> A self-learning, self-healing x86_64 assembly system with neural network integration
+> A self-learning, self-healing x86_64 assembly ProxMOx like OS with neural network integration
 
 ## 🧬 Overview
-LNS is an experimental assembly-level system that combines neural network capabilities with low-level system operations. It creates a self-adapting, self-healing computing environment that learns from its operations and can recover from failures autonomously.
+D0 is an experimental assembly-level system that combines neural network capabilities with low-level system operations. 
+It creates a self-adapting, self-healing computing environment that learns from its operations and can recover from failures autonomously.
 
 ## 🌟 Key Features
 - **Neural Learning**: Real-time pattern recognition and adaptation
@@ -18,7 +19,7 @@ LNS is an experimental assembly-level system that combines neural network capabi
 - **High-Performance Networking**: Support for standard Ethernet, high-speed Ethernet (up to 800G), and InfiniBand
 
 ## 💡 Innovation
-LNS pushes the boundaries of traditional computing by:
+D0 pushes the boundaries of traditional computing by:
 - Implementing neural networks at the assembly level
 - Creating self-modifying, stable code patterns
 - Providing autonomous system maintenance
@@ -29,8 +30,8 @@ LNS pushes the boundaries of traditional computing by:
 ## 🔬 Technical Stack
 - x86_64 Assembly
 - Neural Network Pattern Generation
-- Docker Containerization
-- QEMU System Emulation
+- Support for Linux Containers, all the way up to commercial Docker containers
+- Hammer 2 style filesystem with thin provisioning support
 - Automated Build Pipeline
 - Lightweight VM Hypervisor
 - High-Performance Network Stack

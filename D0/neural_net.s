@@ -1,228 +1,265 @@
 .code64
 .global init_neural_net, train_network, predict_performance
 
-# Neural Network Constants
-.set INPUT_SIZE,      64    # Performance metrics input
-.set HIDDEN_SIZE,     32    # Hidden layer neurons
-.set OUTPUT_SIZE,     16    # Prediction outputs
-.set BATCH_SIZE,      8     # Training batch size
-.set LEARNING_RATE,   0x3C23D70A    # 0.01 in float
+# Modern Neural Network Structure
+.set NN_INPUT_SIZE,     1024
+.set NN_HIDDEN_SIZE,    512
+.set NN_OUTPUT_SIZE,    256
+.set NN_LEARNING_RATE,  0.001
 
-# Network Structure
-.struct 0
-NN_WEIGHTS1:    .skip (INPUT_SIZE * HIDDEN_SIZE * 4)  # First layer weights
-NN_BIAS1:       .skip (HIDDEN_SIZE * 4)               # First layer bias
-NN_WEIGHTS2:    .skip (HIDDEN_SIZE * OUTPUT_SIZE * 4) # Second layer weights
-NN_BIAS2:       .skip (OUTPUT_SIZE * 4)               # Second layer bias
-NN_GRADIENTS:   .skip (INPUT_SIZE * HIDDEN_SIZE * 4)  # For backprop
-NN_CACHE:       .skip (HIDDEN_SIZE * 4)               # Activation cache
-NN_SIZE:
+# Modern Neural Network State
+.set NN_STATE_READY,    0x01
+.set NN_STATE_TRAINING, 0x02
+.set NN_STATE_PREDICT,  0x03
+.set NN_STATE_ERROR,    0xFF
 
-# Performance metrics input structure
-.struct 0
-    CPU_USAGE:      .quad 0    # CPU utilization
-    MEM_PRESSURE:   .quad 0    # Memory pressure
-    CACHE_MISSES:   .quad 0    # Cache miss rates
-    IO_WAIT:        .quad 0    # I/O wait times
-    NUMA_TRAFFIC:   .quad 0    # Inter-node memory traffic
-    THREAD_STATES:  .quad 0    # Thread scheduling states
-    NET_LOAD:       .quad 0    # Network load
-    DISK_IO:        .quad 0    # Disk I/O patterns
+# Modern structure offsets with proper alignment
+.set NN_INPUTS,         0x00
+.set NN_HIDDEN,         0x1000
+.set NN_OUTPUTS,        0x2000
+.set NN_WEIGHTS1,       0x3000
+.set NN_WEIGHTS2,       0x4000
+.set NN_BIASES1,        0x5000
+.set NN_BIASES2,        0x6000
+.set NN_STATE,          0x7000
+.set NN_LEARN_RATE,     0x7008
 
-# Prediction outputs
-.struct 0
-    PRED_CPU_NEED:     .quad 0    # Future CPU requirements
-    PRED_MEM_NEED:     .quad 0    # Future memory needs
-    PRED_CACHE_CONF:   .quad 0    # Predicted cache conflicts
-    PRED_THREAD_DIST:  .quad 0    # Optimal thread distribution
-
-# Initialize neural network
 init_neural_net:
+    .cfi_startproc
+    .cfi_def_cfa rsp, 8
     push    %rbx
+    .cfi_offset rbx, -16
+    push    %r12
+    .cfi_offset r12, -24
     
-    # Allocate network structure
-    mov     $NN_SIZE, %rdi
-    call    allocate_aligned_pages
-    mov     %rax, %rbx
+    # Allocate neural network memory with modern alignment
+    mov     $0x8000, %rdi    # 32KB for network
+    call    allocate_aligned_memory
+    test    %rax, %rax
+    jz      init_failed
     
-    # Initialize weights with Xavier initialization
+    mov     %rax, %rbx       # Network base address
+    
+    # Initialize weights with modern AVX-512
     lea     NN_WEIGHTS1(%rbx), %rdi
-    mov     $INPUT_SIZE, %rsi
-    mov     $HIDDEN_SIZE, %rdx
-    call    xavier_init
+    mov     $NN_INPUT_SIZE * NN_HIDDEN_SIZE, %rcx
+    call    init_weights_avx512_modern
     
     lea     NN_WEIGHTS2(%rbx), %rdi
-    mov     $HIDDEN_SIZE, %rsi
-    mov     $OUTPUT_SIZE, %rdx
-    call    xavier_init
+    mov     $NN_HIDDEN_SIZE * NN_OUTPUT_SIZE, %rcx
+    call    init_weights_avx512_modern
     
-    pop     %rbx
-    ret
-
-# Forward pass
-# rdi = input data, rsi = network structure
-forward_pass:
-    push    %rbx
-    push    %r12
-    push    %r13
+    # Initialize biases with modern AVX-512
+    lea     NN_BIASES1(%rbx), %rdi
+    mov     $NN_HIDDEN_SIZE, %rcx
+    call    init_biases_avx512_modern
     
-    mov     %rdi, %rbx    # Input data
-    mov     %rsi, %r12    # Network structure
+    lea     NN_BIASES2(%rbx), %rdi
+    mov     $NN_OUTPUT_SIZE, %rcx
+    call    init_biases_avx512_modern
     
-    # First layer
-    lea     NN_WEIGHTS1(%r12), %rdi
-    mov     %rbx, %rsi
-    lea     NN_CACHE(%r12), %rdx
-    mov     $INPUT_SIZE, %rcx
-    mov     $HIDDEN_SIZE, %r8
-    call    matrix_multiply
+    # Set initial state
+    movq    $NN_STATE_READY, NN_STATE(%rbx)
+    movq    $NN_LEARNING_RATE, NN_LEARN_RATE(%rbx)
     
-    # Apply ReLU
-    lea     NN_CACHE(%r12), %rdi
-    mov     $HIDDEN_SIZE, %rsi
-    call    relu_activate
+    mov     %rbx, %rax       # Return network pointer
     
-    # Second layer
-    lea     NN_WEIGHTS2(%r12), %rdi
-    lea     NN_CACHE(%r12), %rsi
-    lea     NN_CACHE(%r12), %rdx
-    mov     $HIDDEN_SIZE, %rcx
-    mov     $OUTPUT_SIZE, %r8
-    call    matrix_multiply
-    
-    pop     %r13
+init_exit:
     pop     %r12
+    .cfi_restore r12
     pop     %rbx
+    .cfi_restore rbx
     ret
+    .cfi_endproc
 
-# ReLU activation
-relu_activate:
-    push    %rbx
-    mov     %rdi, %rbx    # Data pointer
-    mov     %rsi, %rcx    # Size
-    
-1:
-    movss   (%rbx), %xmm0
-    xorps   %xmm1, %xmm1
-    maxss   %xmm1, %xmm0  # max(0, x)
-    movss   %xmm0, (%rbx)
-    
-    add     $4, %rbx
-    dec     %rcx
-    jnz     1b
-    
-    pop     %rbx
-    ret
+init_failed:
+    xor     %rax, %rax
+    jmp     init_exit
 
-# Predict performance
-predict_performance:
-    push    %rbx
-    push    %r12
-    
-    # Prepare input data
-    call    prepare_input_data
-    
-    # Forward pass
-    mov     %rax, %rdi
-    lea     network_structure(%rip), %rsi
-    call    forward_pass
-    
-    # Process predictions
-    lea     NN_CACHE(%rsi), %rdi
-    mov     $OUTPUT_SIZE, %rsi
-    call    process_predictions
-    
-    pop     %r12
-    pop     %rbx
-    ret
-
-# Training function
-train_network:
-    push    %rbx
-    push    %r12
-    push    %r13
-    
-    # Load training data
-    call    load_training_batch
-    
-    # Forward pass
-    mov     %rax, %rdi
-    lea     network_structure(%rip), %rsi
-    call    forward_pass
-    
-    # Compute loss
-    call    compute_loss
-    
-    # Backpropagation
-    call    backpropagate
-    
-    # Update weights
-    call    update_weights
-    
-    pop     %r13
-    pop     %r12
-    pop     %rbx
-    ret
-
-# SIMD optimized matrix multiplication
-matrix_multiply:
-    push    %rbx
-    push    %r12
-    push    %r13
-    push    %r14
-    push    %r15
-    
-    # rdi = weights, rsi = input, rdx = output
-    # rcx = input_size, r8 = output_size
-    
-    mov     %rcx, %r13    # Save input size
-    mov     %r8, %r14     # Save output size
-    
-    # Align for AVX-512
+# Modern AVX-512 weight initialization with proper alignment
+init_weights_avx512_modern:
+    .cfi_startproc
+    # %rdi = weights pointer, %rcx = count
+    # Ensure 64-byte alignment for AVX-512
     test    $0x3F, %rdi
     jz      1f
-    call    align_memory
+    call    align_memory_64byte
 1:
-    # Main multiplication loop with AVX-512
-    xor     %r15, %r15    # Output index
-2:
-    xor     %rbx, %rbx    # Input index
-    vxorps  %zmm0, %zmm0, %zmm0    # Accumulator
+    vxorps  %zmm0, %zmm0, %zmm0
     
-3:
-    vmovups (%rdi,%rbx,4), %zmm1
-    vmovups (%rsi,%rbx,4), %zmm2
-    vfmadd231ps %zmm1, %zmm2, %zmm0
+    # Process 16 floats at a time with AVX-512
+    shr     $4, %rcx         # Divide by 16
+    jz      init_weights_done
     
-    add     $16, %rbx
-    cmp     %r13, %rbx
-    jb      3b
+init_weights_loop:
+    vmovups %zmm0, (%rdi)
+    add     $64, %rdi        # 16 floats * 4 bytes
+    loop    init_weights_loop
     
-    # Store result
-    vmovups %zmm0, (%rdx,%r15,4)
-    
-    inc     %r15
-    cmp     %r14, %r15
-    jb      2b
-    
-    pop     %r15
-    pop     %r14
-    pop     %r13
-    pop     %r12
-    pop     %rbx
+init_weights_done:
     ret
+    .cfi_endproc
 
-# Data section
+# Modern AVX-512 bias initialization with proper alignment
+init_biases_avx512_modern:
+    .cfi_startproc
+    # %rdi = biases pointer, %rcx = count
+    # Ensure 64-byte alignment
+    test    $0x3F, %rdi
+    jz      1f
+    call    align_memory_64byte
+1:
+    vxorps  %zmm0, %zmm0, %zmm0
+    
+    # Process 16 floats at a time
+    shr     $4, %rcx
+    jz      init_biases_done
+    
+init_biases_loop:
+    vmovups %zmm0, (%rdi)
+    add     $64, %rdi
+    loop    init_biases_loop
+    
+init_biases_done:
+    ret
+    .cfi_endproc
+
+train_network:
+    .cfi_startproc
+    .cfi_def_cfa rsp, 8
+    push    %rbx
+    .cfi_offset rbx, -16
+    push    %r12
+    .cfi_offset r12, -24
+    push    %r13
+    .cfi_offset r13, -32
+    
+    # %rdi = network pointer, %rsi = input data, %rdx = target data
+    mov     %rdi, %rbx       # Network
+    mov     %rsi, %r12       # Inputs
+    mov     %rdx, %r13       # Targets
+    
+    # Forward pass with modern AVX-512
+    call    forward_pass_avx512_modern
+    
+    # Backward pass with modern AVX-512
+    call    backward_pass_avx512_modern
+    
+    pop     %r13
+    .cfi_restore r13
+    pop     %r12
+    .cfi_restore r12
+    pop     %rbx
+    .cfi_restore rbx
+    ret
+    .cfi_endproc
+
+# Modern AVX-512 forward pass with proper alignment
+forward_pass_avx512_modern:
+    .cfi_startproc
+    # Load input data with modern AVX-512
+    lea     NN_INPUTS(%rbx), %rdi
+    mov     %r12, %rsi
+    mov     $NN_INPUT_SIZE, %rcx
+    shr     $4, %rcx         # Process 16 floats at a time
+    
+    # Ensure proper alignment
+    test    $0x3F, %rdi
+    jz      1f
+    call    align_memory_64byte
+1:
+    vmovups (%rsi), %zmm0
+    vmovups %zmm0, (%rdi)
+    
+    # Matrix multiplication with modern AVX-512
+    lea     NN_HIDDEN(%rbx), %rdi
+    lea     NN_WEIGHTS1(%rbx), %rsi
+    call    matrix_mult_avx512_modern
+    
+    # Apply modern activation function
+    lea     NN_HIDDEN(%rbx), %rdi
+    mov     $NN_HIDDEN_SIZE, %rcx
+    call    relu_activation_avx512_modern
+    
+    # Second layer
+    lea     NN_OUTPUTS(%rbx), %rdi
+    lea     NN_WEIGHTS2(%rbx), %rsi
+    call    matrix_mult_avx512_modern
+    
+    ret
+    .cfi_endproc
+
+# Modern AVX-512 matrix multiplication
+matrix_mult_avx512_modern:
+    .cfi_startproc
+    # %rdi = output, %rsi = weights, %rbx = network
+    # Ensure proper alignment
+    test    $0x3F, %rdi
+    jz      1f
+    call    align_memory_64byte
+1:
+    vmovups (%rsi), %zmm1
+    vmovups (%rbx), %zmm2
+    vmulps  %zmm2, %zmm1, %zmm0
+    vmovups %zmm0, (%rdi)
+    ret
+    .cfi_endproc
+
+# Modern AVX-512 ReLU activation
+relu_activation_avx512_modern:
+    .cfi_startproc
+    # %rdi = data pointer, %rcx = count
+    # Ensure proper alignment
+    test    $0x3F, %rdi
+    jz      1f
+    call    align_memory_64byte
+1:
+    vxorps  %zmm0, %zmm0, %zmm0  # Zero vector
+    vmovups (%rdi), %zmm1
+    vmaxps  %zmm0, %zmm1, %zmm1  # ReLU: max(0, x)
+    vmovups %zmm1, (%rdi)
+    ret
+    .cfi_endproc
+
+predict_performance:
+    .cfi_startproc
+    .cfi_def_cfa rsp, 8
+    push    %rbx
+    .cfi_offset rbx, -16
+    push    %r12
+    .cfi_offset r12, -24
+    
+    # %rdi = network pointer, %rsi = input data
+    mov     %rdi, %rbx
+    mov     %rsi, %r12
+    
+    # Forward pass
+    call    forward_pass_avx512_modern
+    
+    # Get output predictions
+    lea     NN_OUTPUTS(%rbx), %rax
+    
+    pop     %r12
+    .cfi_restore r12
+    pop     %rbx
+    .cfi_restore rbx
+    ret
+    .cfi_endproc
+
+# Modern memory alignment helper
+align_memory_64byte:
+    .cfi_startproc
+    # Align memory to 64-byte boundary for AVX-512
+    add     $0x3F, %rdi
+    and     $0xFFFFFFC0, %rdi
+    ret
+    .cfi_endproc
+
 .section .data
-.align 64    # AVX-512 alignment
-network_structure:
-    .skip NN_SIZE
-
-training_data:
-    .skip 4096    # Training data buffer
-
-# BSS section
-.section .bss
-.align 64
-prediction_buffer:
-    .skip 4096 
+    .align 64    # Modern AVX-512 alignment
+    neural_network_state:
+        .quad 0
+    
+    .align 64
+    neural_network_ready:
+        .quad 0 

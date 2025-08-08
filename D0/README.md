@@ -1,218 +1,170 @@
-# D0
+# D0 - Modern Self-Learning Operating System
 
-## 🧠 Overview
-D0 is a self-learning, self-healing assembly system that operates directly at the hardware level. It uses neural network patterns to maintain system stability and adapt to changes in real-time.
+> A modern self-learning, self-healing x86_64 assembly operating system with neural network integration, built with current Intel ASM standards and Clang toolchain
 
-## 🌟 Key Features
-- Neural network-based learning
-- Self-healing capabilities
-- Pattern-based memory management
-- Circular verification system
-- Hot reload capability
-- Real-time adaptation
-- Hammer2-style filesystem for container image storage
-- High-performance network drivers for Ethernet and InfiniBand
-- VM-isolated transport layer for secure container networking
+## 🚀 Modern Features
 
-## 🔧 System Components
+- **Modern Intel ASM**: Updated to current Intel assembly standards
+- **Clang Toolchain**: Modern compilation with Clang 18+ 
+- **AVX-512 Support**: Full SIMD optimization for Intel processors
+- **Security Features**: Stack protection, RELRO, and modern security hardening
+- **Neural Network Integration**: Self-learning and self-healing capabilities
+- **Circular Verification**: Continuous system integrity checking
+- **Docker Integration**: Containerized build and test environment
 
-### Core Components
-1. **Live0.s**
-   - System bootstrap
-   - Initial hardware checks
-   - Neural network initialization
-
-2. **neural_mutate.s**
-   - Pattern generation
-   - Learning algorithms
-   - Mutation handling
-
-3. **memory_regions.s**
-   - Pattern verification
-   - Memory management
-   - State preservation
-
-4. **binary_healing.s**
-   - Self-repair mechanisms
-   - State verification
-   - Recovery procedures
-
-5. **sync.s**
-   - Component synchronization
-   - State management
-   - Error handling
-
-6. **device_manager.s**
-   - Hardware initialization
-   - Device management
-   - IRQ handling
-
-### Filesystem Components
-1. **fs_h2.s**
-   - Hammer2-style filesystem implementation
-   - Container image storage
-   - Conditional initialization
-
-2. **h2_config.s**
-   - Filesystem configuration handling
-   - Boot parameter parsing
-   - Security verification
-
-3. **h2_ops.s**
-   - Container image operations (create, read, write)
-   - Snapshot functionality
-   - Copy-on-Write implementation
-
-### Network Components
-1. **net_common.s**
-   - Common networking infrastructure
-   - Buffer management
-   - Packet handling
-
-2. **eth_driver.s**
-   - Standard Ethernet driver 
-   - Base network operations
-   - PCI device detection
-
-3. **eth_advanced.s**
-   - High-speed Ethernet (100G/400G/800G)
-   - Advanced NIC features
-   - Multi-queue support
-
-4. **ib_driver.s**
-   - InfiniBand driver
-   - RDMA support
-   - Queue pair management
-
-5. **net_init.s**
-   - Network driver initialization
-   - Device detection
-   - Link management
-
-6. **vm_hypervisor.s**
-   - Lightweight hypervisor for transport layer isolation
-   - VM environment for TCP/IP stack
-   - Secure memory isolation
-   - VM exit handlers
-
-7. **vnet_device.s**
-   - Virtual network device creation
-   - Zero-copy packet exchange
-   - Integration with physical interfaces
-   - Packet forwarding
-
-8. **vm_transport.s**
-   - VM-based TCP/IP stack implementation
-   - Socket API for container networking
-   - Isolated memory management
-   - Protocol handlers (TCP, UDP, ICMP)
-
-9. **net_integration.s**
-   - Integration between physical drivers, VMs, and containers
-   - Network stack initialization
-   - Bridge management
-   - Container networking configuration
-
-## 🚀 Building the System
+## 🛠 Modern Build System
 
 ### Prerequisites
+- **Clang 18+** (modern LLVM toolchain)
+- **Ubuntu 24.04+** (latest LTS)
+- **QEMU** (for testing)
+- **Modern Intel processor** with AVX-512 support
 
-## 🗄️ Filesystem Features
+### Quick Start
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/D0.git
+cd D0
 
-The D0 system includes an optional Hammer2-style filesystem specifically designed for container image storage with the following features:
+# Build with modern Clang toolchain
+./build.sh
 
-### Conditional Initialization
-- The filesystem is not created by default and requires explicit configuration
-- Cold storage requires only enough space for the OS itself
-- Filesystem can be enabled via boot parameters or configuration files
+# Or use Docker for isolated build
+docker build -t d0-modern .
+docker run -it d0-modern
+```
 
-### Container Image Management
-- Efficient container image storage with thin provisioning
-- Snapshot capabilities using Copy-on-Write (COW)
-- Container image versioning and rollback
+## 🏗 Modern Architecture
+
+### Core Components
+- **Modern Kernel**: Updated to current Intel standards
+- **Neural Network**: AVX-512 optimized neural processing
+- **Memory Management**: Modern paging with 2MB pages
+- **Security Model**: Stack protection and RELRO
+- **Device Management**: Modern device abstraction
+- **Network Stack**: High-performance networking
+
+### Modern Standards Compliance
+- **Intel ASM**: Current Intel assembly standards
+- **Clang Compatibility**: Full Clang 18+ support
+- **Security Hardening**: Modern security features
+- **Memory Alignment**: Proper 64-byte alignment for AVX-512
+- **CFI Directives**: Complete stack unwinding support
+
+## 🔧 Modern Build Configuration
+
+### Build Flags
+```bash
+# Modern Clang flags for Intel processors
+CFLAGS="-target x86_64-unknown-linux-gnu -march=native -mtune=native -O3 -fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2"
+ASFLAGS="-target x86_64-unknown-linux-gnu -march=native -mtune=native -fPIC -fstack-protector-strong"
+LDFLAGS="-nostdlib -n -static -Wl,-z,relro,-z,now -Wl,--as-needed"
+```
 
 ### Security Features
-- Complete isolation from the OS image
-- OpenBSD-inspired memory protection mechanisms
-- Secure memory regions for filesystem operations
-- Cryptographic verification of data integrity
+- **Stack Protection**: `-fstack-protector-strong`
+- **FORTIFY Source**: `-D_FORTIFY_SOURCE=2`
+- **RELRO**: `-Wl,-z,relro,-z,now`
+- **ASLR**: Modern address space layout randomization
 
-### Compatibility
-- Designed for Docker and Kubernetes compatibility
-- Kata Containers support
-- Polymorphic cluster capabilities
-- Agentic operations support
+## 🧠 Neural Network Features
 
-## 🌐 Network Features
+### Modern SIMD Optimization
+- **AVX-512**: Full 512-bit vector operations
+- **Proper Alignment**: 64-byte aligned memory access
+- **Modern Instructions**: `vmovups`, `vaddps`, `vmulps`
+- **Optimized Training**: Vectorized neural network training
 
-D0 includes comprehensive networking support for high-performance container orchestration:
+### Self-Learning Capabilities
+- **Pattern Recognition**: Real-time system pattern analysis
+- **Performance Prediction**: Neural-based performance optimization
+- **Self-Healing**: Autonomous system repair and recovery
+- **Adaptive Security**: Neural-driven security enhancements
 
-### Standard Ethernet
-- Full 1G/10G/25G Ethernet support
-- Industry-standard frame formats
-- Jumbo frame support
-- Standard checksum offloads
+## 🔒 Security Features
 
-### High-Speed Ethernet
-- 100G/200G/400G/800G Ethernet support
-- Forward Error Correction (FEC)
-- Advanced packet offload capabilities
-- Multi-queue optimization
+### Modern Security Model
+- **Memory Protection**: Modern paging with security features
+- **Stack Protection**: Canary-based stack overflow protection
+- **Code Integrity**: Modern code signing and verification
+- **Runtime Protection**: Modern runtime security checks
 
-### InfiniBand
-- SDR through XDR (up to 800 Gbps) support
-- RDMA capabilities for direct memory access
-- Queue Pair management
-- Low-latency operations
+### Security Verification
+```bash
+# Verify modern security features
+make security
 
-### Advanced Features
-- RoCE (RDMA over Converged Ethernet)
-- Secure memory isolation for network operations
-- Advanced flow control
-- QoS support with Traffic Classes
-- Hardware offload capabilities for encryption and checksums
+# Check for modern SIMD instructions
+make verify
+```
 
-## 🔐 VM-Based Transport Layer
+## 📊 Performance Features
 
-D0 implements a unique VM-based approach to network transport layers:
+### Modern Optimization
+- **AVX-512**: Full Intel SIMD optimization
+- **Memory Alignment**: Proper cache line alignment
+- **Modern Paging**: 2MB pages for better performance
+- **Neural Optimization**: AI-driven performance tuning
 
-### Architecture
-- Complete isolation of TCP/IP stack in dedicated VM spaces
-- Lightweight hypervisor optimized for network operations
-- Shared memory ring buffers for efficient packet exchange
-- Zero-copy support for high-performance networking
+### Performance Monitoring
+- **Real-time Metrics**: Continuous performance monitoring
+- **Neural Analysis**: AI-powered performance analysis
+- **Adaptive Tuning**: Self-optimizing system parameters
 
-### Security Benefits
-- Transport layer vulnerabilities contained within VM boundaries
-- Memory isolation between different container network stacks
-- EPT (Extended Page Tables) protection of network memory
-- Reduced attack surface for network exploits
+## 🐳 Docker Support
 
-### Performance
-- Para-virtualized I/O for minimal overhead
-- Multi-queue support for parallel packet processing
-- Hardware offload capabilities passed through to VM
-- Dynamic resource allocation based on container requirements
+### Modern Container Build
+```dockerfile
+# Modern Ubuntu 24.04 base
+FROM ubuntu:24.04 AS builder
 
-### Container Integration
-- Each container can have its own isolated transport VM
-- Support for standard container networking models (bridge, macvlan, ipvlan)
-- Network namespace integration
-- Compatible with container orchestration platforms
+# Modern Clang toolchain
+RUN apt-get install -y clang-18 lld-18 llvm-18
 
-### Customization
-- Per-container network policies
-- VM-based network function virtualization
-- Custom protocol support
-- Flexible routing capabilities
+# Build with modern standards
+RUN ./build.sh
+```
 
-## 🔒 Security Model
+## 🔄 Development Workflow
 
-The security model follows OpenBSD principles:
+### Modern Development
+1. **Code**: Write modern Intel assembly
+2. **Build**: Use Clang 18+ toolchain
+3. **Test**: Modern QEMU testing
+4. **Deploy**: Containerized deployment
 
-1. **Isolation**: All components operate in separate memory regions
-2. **Privilege Separation**: Operations run with minimal required permissions
-3. **W^X (Write XOR Execute)**: Memory cannot be simultaneously writable and executable
-4. **Address Randomization**: Memory locations are randomized for security
-5. **Cryptographic Verification**: All operations are verified for integrity
-6. **VM Boundaries**: Network transport layers are isolated in dedicated VM spaces
+### Quality Assurance
+- **Modern Standards**: Current Intel ASM compliance
+- **Security Checks**: Automated security verification
+- **Performance Testing**: Modern performance benchmarks
+- **Neural Validation**: AI-powered system validation
+
+## 📈 Roadmap
+
+### Upcoming Modern Features
+- **Intel AMX**: Advanced Matrix Extensions support
+- **Modern Security**: Latest Intel security features
+- **Enhanced Neural**: Advanced neural network capabilities
+- **Cloud Integration**: Modern cloud deployment support
+
+## 🤝 Contributing
+
+### Modern Contribution Guidelines
+1. **Follow Intel Standards**: Use current Intel assembly standards
+2. **Clang Compatibility**: Ensure Clang 18+ compatibility
+3. **Security First**: Implement modern security features
+4. **Performance Focus**: Optimize for modern Intel processors
+
+## 📄 License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Intel Corporation**: For modern processor features and standards
+- **LLVM Project**: For the modern Clang toolchain
+- **Open Source Community**: For modern development practices
+
+---
+
+**Built with modern Intel ASM standards and Clang 18+ toolchain for optimal performance and security.**

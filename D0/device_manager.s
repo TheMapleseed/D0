@@ -1,5 +1,8 @@
 .code64
 .global init_device_manager, cleanup_device_manager, register_device, verify_device_state, verify_device_links
+# Defaults for table sizing (portable for assembler-time expressions)
+.set MAX_DEVICES, 128
+
 
 # Device Types
 .set DEV_BLOCK,      0x01
@@ -114,7 +117,7 @@ cleanup_device_manager:
     
     # Clear device table
     lea     device_table(%rip), %rdi
-    mov     $DEV_SIZE * MAX_DEVICES, %ecx
+    mov     $(DEV_SIZE * MAX_DEVICES), %ecx
     xor     %rax, %rax
     rep stosb
     
@@ -146,7 +149,7 @@ free_device_resources:
 .section .data
 .align 8
 device_table:
-    .skip DEV_SIZE * MAX_DEVICES 
+    .skip (DEV_SIZE * MAX_DEVICES)
 
 # Neural learning data
 neural_conflict_data:

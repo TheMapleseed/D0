@@ -3,6 +3,9 @@
 .global container_pause, container_resume, container_destroy
 .global register_container_runtime, container_attach_network
 
+# LIVE_ONLY mode toggle (non-zero disables persistent host writes)
+.set LIVE_ONLY, 1
+
 # Container Runtime Constants
 .set CONTAINER_RT_OCI,      0x01    # OCI-compatible runtime (Docker, Podman)
 .set CONTAINER_RT_KATA,     0x02    # Kata Containers runtime
@@ -803,7 +806,13 @@ io_init_hook:
 io_read_hook:
     ret
 io_write_hook:
+    cmp     $0, $LIVE_ONLY
+    jne     .no_persist
     ret
+.no_persist:
+    # Live OS: disallow writes to host persistent storage
+    ret
+
 io_close_hook:
     ret
 

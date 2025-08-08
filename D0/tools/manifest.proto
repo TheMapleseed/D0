@@ -1,0 +1,35 @@
+syntax = "proto3";
+package d0;
+
+message Route {
+  uint32 ip4    = 1; // IPv4 address in network byte order
+  uint32 prefix = 2; // CIDR prefix length
+}
+
+message Container {
+  string name            = 1;
+  uint32 vcpu            = 2;
+  uint32 mem_mb          = 3;
+  string disk            = 4; // Path on ESP, e.g. "\\VM\\api.img"
+  bytes  mac             = 5; // 6 bytes
+  uint32 ip4             = 6; // IPv4 address (network order)
+  uint32 prefix          = 7; // CIDR prefix length
+  uint32 gw4             = 8; // Default gateway IPv4 (network order)
+  repeated Route routes  = 9; // Additional routes
+  uint32 boot_order      = 10;
+  uint32 health_timeout_s = 11;
+}
+
+message Network {
+  uint32 bridge_ip4 = 1; // IPv4 in network order
+  uint32 prefix     = 2; // CIDR prefix
+  bool   egress_nat = 3; // NAT egress policy
+}
+
+message Manifest {
+  bytes  build_uuid        = 1;  // 16 bytes UUID
+  uint32 manifest_version  = 2;  // version of this schema
+  uint64 timestamp_ms      = 3;  // build time
+  Network network          = 4;  // network fabric
+  repeated Container containers = 5; // declared containers
+}

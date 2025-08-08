@@ -332,19 +332,35 @@ net_create_container:
     jmp     .setup_none_networking
     
 .setup_bridge_networking:
-    # TODO: Implement bridge networking setup
+    # Implement secure bridge networking setup
+    mov     %r13, %rdi
+    call    setup_bridge_networking
+    test    %rax, %rax
+    jz      .create_container_net_failed
     jmp     .networking_setup_done
     
 .setup_macvlan_networking:
-    # TODO: Implement macvlan networking setup
+    # Implement secure macvlan networking setup
+    mov     %r13, %rdi
+    call    setup_macvlan_networking
+    test    %rax, %rax
+    jz      .create_container_net_failed
     jmp     .networking_setup_done
     
 .setup_ipvlan_networking:
-    # TODO: Implement ipvlan networking setup
+    # Implement secure ipvlan networking setup
+    mov     %r13, %rdi
+    call    setup_ipvlan_networking
+    test    %rax, %rax
+    jz      .create_container_net_failed
     jmp     .networking_setup_done
     
 .setup_host_networking:
-    # TODO: Implement host networking setup
+    # Implement secure host networking setup
+    mov     %r13, %rdi
+    call    setup_host_networking
+    test    %rax, %rax
+    jz      .create_container_net_failed
     jmp     .networking_setup_done
     
 .setup_none_networking:

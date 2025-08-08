@@ -3,6 +3,16 @@
 .global vm_alloc_memory, vm_free_memory, vm_map_device, vm_unmap_device
 .global start_transport_vm, stop_transport_vm, pause_transport_vm
 .global vm_send_interrupt, vm_poll_event
+# External VMX helper
+.extern vmx_init_safe
+.extern ept_init_global
+.extern ept_setup_for_vm
+.extern virtio_init_net_backend
+.extern virtio_mmio_init_net, virtio_mmio_init_blk
+.extern vmcs_alloc_for_vm
+.extern vmcs_init_for_vcpu
+.extern apic_init_guest, bridge_init
+
 
 # Hypervisor constants
 .set VM_PAGE_SIZE,         4096          # Basic page size
@@ -32,6 +42,14 @@
 .set VM_EXIT_RDMSR,        31            # RDMSR instruction
 .set VM_EXIT_WRMSR,        32            # WRMSR instruction
 .set VM_EXIT_EPT_VIOLATION,48            # EPT violation
+.set VM_EXIT_CPUID,          0x0000000A
+.set VM_EXIT_HLT,            0x0000000C
+.set VM_EXIT_VMCALL,         0x00000012
+.set VM_EXIT_CR_ACCESS,      0x0000001A
+.set VM_EXIT_IO_INSTRUCTION, 0x0000001B
+.set VM_EXIT_MSR_READ,       0x0000001C
+.set VM_EXIT_MSR_WRITE,      0x0000001D
+.set VM_EXIT_EPT_VIOLATION,  0x00000033
 
 # VM states
 .set VM_STATE_CREATED,     0             # VM created but not running
@@ -95,6 +113,21 @@ init_hypervisor:
     test    %rax, %rax
     jz      .vmx_enable_failed
     
+    # Initialize EPT
+    call    ept_init_global
+    test    %rax, %rax
+    jz      .ept_setup_failed
+
+    # Initialize APIC virtualization
+    call    apic_init_guest
+    test    %rax, %rax
+    jz      .apic_init_failed
+
+    # Initialize network bridge
+    call    bridge_init
+    test    %rax, %rax
+    jz      .bridge_init_failed
+    
     # Allocate memory for VM tracking array
     mov     $VM_MAX_TRANSPORT_VMS, %rdi
     imul    $VM_SIZE, %rdi
@@ -134,6 +167,8 @@ init_hypervisor:
 .vmx_enable_failed:
 .vm_alloc_failed:
 .ept_setup_failed:
+.apic_init_failed:
+.bridge_init_failed:
 .exit_handler_failed:
     # Initialization failed
     xor     %rax, %rax
@@ -457,28 +492,134 @@ transport_vm_exit_handler:
     pop     %rbx
     ret
 
-# Helper function stubs
+# Helper function implementations (minimal skeleton)
 check_vmx_support:
+    # Return 1 if CPUID.1:ECX.VMX is set and IA32_FEATURE_CONTROL allows VMXON
+    push    %rbx
+    mov     $0x1, %eax
+    cpuid
+    test    $(1 << 5), %ecx          # VMX bit
+    jz      1f
+    mov     $0x3A, %ecx              # IA32_FEATURE_CONTROL
+    rdmsr
+    test    $0x1, %eax               # lock bit
+    jz      1f
+    test    $0x4, %eax               # VMXON outside SMX
+    jz      1f
+    mov     $1, %rax
+    jmp     2f
+1:  xor     %rax, %rax
+2:  pop     %rbx
     ret
+
 enable_vmx:
+    # Enable VMX in CR4
+    mov     %cr4, %rax
+    or      $0x2000, %rax  # CR4.VMXE
+    mov     %rax, %cr4
+    
+    # Enable VMX in MSR
+    mov     $0x3A, %ecx  # IA32_FEATURE_CONTROL
+    rdmsr
+    or      $0x05, %eax  # Lock bit + VMX enable
+    wrmsr
+    
+    mov     $1, %rax
     ret
+
 allocate_secure_memory:
+    # %rdi = size (bytes)
+    # Minimal non-destructive placeholder: return a non-zero dummy pointer
+    mov     $0x100000, %rax
     ret
 secure_memset:
+    # %rdi = dst, %rsi = len, %rdx = value (low 8 bits)
+    push    %rbx
+    mov     %rdi, %rbx
+    test    %rsi, %rsi
+    jz      1f
+0:  mov     %dl, (%rbx)
+    inc     %rbx
+    dec     %rsi
+    jnz     0b
+1:  pop     %rbx
+    mov     %rdi, %rax
     ret
 setup_global_ept:
+    # Initialize global EPT structures
+    call    ept_init_global
     ret
 setup_vm_exit_handlers:
+    # No VM descriptor in %rdi here; this installs a default handler address
+    lea     transport_vm_exit_handler(%rip), %rax
+    mov     %rax, default_vm_exit_handler(%rip)
+    mov     $1, %rax
     ret
 generate_vm_id:
     ret
 allocate_vm_memory:
+    # %rdi = size
+    mov     $0x200000, %rax
     ret
 setup_vm_ept:
+    # %rdi = VM descriptor
+    push    %rbx
+    mov     %rdi, %rbx
+    # Ask EPT module to prepare mappings and return EPT root pointer
+    mov     %rbx, %rdi
+    call    ept_setup_for_vm
+    test    %rax, %rax
+    jz      1f
+    # Save EPT root into VM descriptor
+    mov     %rax, VM_EPT_ROOT(%rbx)
+    mov     $1, %rax
+    jmp     2f
+1:  xor     %rax, %rax
+2:  pop     %rbx
     ret
 init_vm_vcpus:
+    # %rdi = VM descriptor
+    push    %rbx
+    mov     %rdi, %rbx
+    # For now, bring up a single vCPU minimal VMCS
+    mov     $1, %rax
+    mov     %rax, VM_VCPU_COUNT(%rbx)
+    mov     %rbx, %rdi
+    call    vmcs_alloc_for_vm
+    test    %rax, %rax
+    jz      1f
+    # Initialize VMCS for vCPU 0 with current EPTP
+    mov     %rbx, %rdi
+    xor     %rsi, %rsi                # vcpu index 0
+    mov     VM_EPT_ROOT(%rbx), %rdx   # EPTP
+    call    vmcs_init_for_vcpu
+    test    %rax, %rax
+    jz      1f
+    mov     $1, %rax
+    jmp     2f
+1:  xor     %rax, %rax
+2:  pop     %rbx
     ret
 setup_virtual_network:
+    # %rdi = VM descriptor, %rsi = netif id
+    push    %rbx
+    mov     %rdi, %rbx
+    # Initialize virtio-net backend for this VM
+    mov     %rbx, %rdi
+    mov     %rsi, %rsi
+    call    virtio_init_net_backend
+    # Propagate return value
+    test    %rax, %rax
+    jz      1f
+    # Initialize virtio block backend
+    call    virtio_init_blk_backend
+    test    %rax, %rax
+    jz      1f
+    # Map MMIO window for virtio-net
+    mov     %rbx, %rdi
+    call    virtio_mmio_init_net
+1:
+    pop     %rbx
     ret
 cleanup_vm_resources:
     ret
@@ -489,10 +630,16 @@ load_transport_code:
 start_vm_vcpus:
     ret
 allocate_shared_memory:
+    # %rdi = size
+    mov     $0x300000, %rax
     ret
 map_shared_memory_to_vm:
+    # Minimal skeleton: assume mapping succeeds
+    mov     $1, %rax
     ret
 handle_virtual_io:
+    # Minimal skeleton: handle I/O exit as completed
+    mov     $1, %rax
     ret
 handle_external_interrupt:
     ret
@@ -512,3 +659,5 @@ vm_memory_base:
     .quad 0                      # Base address of VM memory
 vm_count:
     .quad 0                      # Number of created VMs 
+default_vm_exit_handler:
+    .quad 0

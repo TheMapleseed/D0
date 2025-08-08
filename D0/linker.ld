@@ -1,75 +1,58 @@
-/* Linker Script */
+/* Modern linker script for Intel processors with security features */
+
 ENTRY(_start)
 
+/* Modern memory layout with proper alignment */
 SECTIONS
 {
-    /* Code section */
+    /* Modern boot code first with proper alignment */
     .text 0x100000 : {
         *(.text.boot)    /* Boot code first */
         *(.text)         /* Regular code */
         *(.text.*)       /* Other text sections */
     }
 
-    /* Read-only data */
+    /* Modern read-only data with proper alignment */
     .rodata ALIGN(4K) : {
         *(.rodata)
         *(.rodata.*)
     }
 
-    /* Read-write data */
+    /* Modern data section with proper alignment */
     .data ALIGN(4K) : {
         *(.data)
         *(.data.*)
     }
 
-    /* BSS section */
+    /* Modern BSS section with proper alignment */
     .bss ALIGN(4K) : {
         *(COMMON)
         *(.bss)
         *(.bss.*)
     }
 
-    /* Special sections */
-    .device_store ALIGN(4K) : {
-        *(.device_store)
+    /* Modern stack with proper alignment */
+    .stack ALIGN(4K) : {
+        . = . + 64K;     /* 64KB stack */
+        stack_top = .;
     }
 
+    /* Modern heap with proper alignment */
+    .heap ALIGN(4K) : {
+        heap_start = .;
+        . = . + 1M;      /* 1MB heap */
+        heap_end = .;
+    }
+
+    /* Modern syscall table with proper alignment */
+    .syscall ALIGN(8) : {
+        syscall_table = .;
+        *(.syscall)
+    }
+
+    /* Modern security features */
     .security ALIGN(4K) : {
         *(.security)
         *(.security.*)
-    }
-
-    /* Neural network data */
-    .neural ALIGN(4K) : {
-        *(.neural)
-        *(.neural.*)
-    }
-
-    /* Add new obfuscation sections here */
-    .obfuscated ALIGN(4K) : {
-        *(.obfuscated)
-        *(.obfuscated.*)
-    }
-
-    .decoy ALIGN(4K) : {
-        *(.decoy)
-        *(.decoy.*)
-    }
-
-    .trap ALIGN(4K) : {
-        *(.trap)
-        *(.trap.*)
-    }
-
-    /* Debugging sections */
-    .debug_info    0 : { *(.debug_info) }
-    .debug_abbrev  0 : { *(.debug_abbrev) }
-    .debug_line    0 : { *(.debug_line) }
-    .debug_str     0 : { *(.debug_str) }
-
-    /DISCARD/ : {
-        *(.comment)
-        *(.eh_frame)
-        *(.note.*)
     }
 } 

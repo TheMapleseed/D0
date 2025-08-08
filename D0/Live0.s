@@ -1,59 +1,66 @@
-.code16
+.code64
 .global _start
 
-# System States
+# Modern system states
 .set SYS_INIT,         0x01
 .set SYS_VERIFY,       0x02
 .set SYS_READY,        0x03
 .set SYS_ERROR,        0xFF
 
-# Verification Chain
+# Modern verification chain
 .set VERIFY_NEURAL,    0x01
 .set VERIFY_MEMORY,    0x02
 .set VERIFY_HEALING,   0x03
 .set VERIFY_SYNC,      0x04
 .set VERIFY_DEVICE,    0x05
 .set VERIFY_BOOT,      0x06
-.set VERIFY_FS,        0x07    # Added filesystem verification step
+.set VERIFY_FS,        0x07
 
 _start:
-    # Initial CPU checks
-    call    check_cpu_features
-    test    %ax, %ax
+    .cfi_startproc
+    .cfi_def_cfa rsp, 8
+    # Modern CPU feature detection
+    call    check_modern_cpu_features
+    test    %rax, %rax
     jz      cpu_error
 
-    # Start circular verification
-    call    init_verification_chain
-    test    %ax, %ax
+    # Start modern verification chain
+    call    init_modern_verification_chain
+    test    %rax, %rax
     jz      verify_error
 
-    # Begin component verification loop
+    # Begin modern component verification loop
     mov     $VERIFY_NEURAL, %al
 verify_loop:
     push    %ax
-    call    verify_component
+    call    verify_modern_component
     test    %ax, %ax
     jz      chain_error
     
     pop     %ax
     inc     %al
-    cmp     $VERIFY_FS+1, %al    # Updated to include FS verification
+    cmp     $VERIFY_FS+1, %al
     jne     verify_loop
 
-    # All components verified, start system
-    call    start_system
+    # All components verified, start modern system
+    call    start_modern_system
     ret
+    .cfi_endproc
 
-verify_component:
-    # Save registers
+verify_modern_component:
+    .cfi_startproc
+    .cfi_def_cfa rsp, 16
+    # Save registers with modern calling convention
     push    %rbx
+    .cfi_offset rbx, -16
     push    %r12
+    .cfi_offset r12, -24
     
     # Get component to verify
     movzx   %al, %ebx
     
-    # Get verification function
-    lea     verify_table(%rip), %r12
+    # Get verification function with modern addressing
+    lea     verify_modern_table(%rip), %r12
     mov     (%r12,%rbx,8), %rax
     
     # Call verification
@@ -64,129 +71,90 @@ verify_component:
     jz      1f
     
     # Verify backwards link
-    call    verify_backward_link
+    call    verify_modern_backward_link
     
 1:  pop     %r12
+    .cfi_restore r12
     pop     %rbx
+    .cfi_restore rbx
     ret
+    .cfi_endproc
 
-# Start the system with all components initialized
-start_system:
+# Start the system with modern components
+start_modern_system:
+    .cfi_startproc
+    .cfi_def_cfa rsp, 16
     # Save registers
     push    %rbx
+    .cfi_offset rbx, -16
     
-    # Initialize neural components
-    call    init_neural_components
+    # Initialize modern neural components
+    call    init_modern_neural_components
     test    %rax, %rax
     jz      .system_failed
     
-    # Initialize memory systems
-    call    init_memory_systems
+    # Initialize modern memory systems
+    call    init_modern_memory_systems
     test    %rax, %rax
     jz      .system_failed
     
-    # Initialize device systems
-    call    init_device_systems
+    # Initialize modern device systems
+    call    init_modern_device_systems
     test    %rax, %rax
     jz      .system_failed
     
-    # Initialize healing systems
-    call    init_healing_systems
+    # Initialize modern healing systems
+    call    init_modern_healing_systems
     test    %rax, %rax
     jz      .system_failed
     
-    # Conditionally initialize filesystem
-    # This will only create the filesystem if configured to do so
-    call    init_filesystem
+    # Initialize modern filesystem
+    call    init_modern_filesystem
     
-    # Note: We continue even if filesystem initialization fails
-    # as it may be intentionally disabled
-    
-    # Complete system startup
-    call    complete_system_startup
-    
-    # Return success
-    mov     $1, %rax
     pop     %rbx
+    .cfi_restore rbx
     ret
-    
-.system_failed:
-    xor     %rax, %rax
-    pop     %rbx
-    ret
+    .cfi_endproc
 
-# Initialize the filesystem if configured
-init_filesystem:
-    # Save registers
-    push    %rbx
+# Modern CPU feature detection
+check_modern_cpu_features:
+    .cfi_startproc
+    # Check for modern Intel features
+    mov     $1, %eax
+    cpuid
     
-    # Check for filesystem configuration
-    call    check_fs_config
-    test    %rax, %rax
-    jz      .no_filesystem
+    # Check for AVX-512 support
+    test    $0x10000000, %ecx  # OSXSAVE
+    jz      cpu_error
     
-    # Initialize H2 filesystem
-    call    init_h2_fs
+    # Check for AVX-512
+    mov     $7, %eax
+    xor     %ecx, %ecx
+    cpuid
+    test    $0x10000, %ebx     # AVX512F
+    jz      cpu_error
     
-    # Store result (but we continue regardless)
-    mov     %rax, fs_enabled(%rip)
-    
-.no_filesystem:
-    # Return success regardless (filesystem is optional)
     mov     $1, %rax
-    pop     %rbx
     ret
+    .cfi_endproc
 
-# Check for filesystem configuration
-check_fs_config:
-    # First check for boot parameter
-    call    check_fs_boot_param
-    test    %rax, %rax
-    jnz     .fs_config_found
-    
-    # Then check for configuration file
-    call    check_fs_config_file
-    test    %rax, %rax
-    jnz     .fs_config_found
-    
-    # No filesystem configuration found
+cpu_error:
     xor     %rax, %rax
     ret
-    
-.fs_config_found:
-    mov     $1, %rax
-    ret
 
-# Verification function table
-verify_table:
-    .quad verify_neural_state
-    .quad verify_memory_patterns
-    .quad verify_healing_system
-    .quad verify_sync_state
-    .quad verify_device_state
-    .quad verify_boot_state
-    .quad verify_fs_state         # Added filesystem verification function
+# Modern verification table
+.section .rodata
+    .align 8
+    verify_modern_table:
+        .quad verify_modern_neural
+        .quad verify_modern_memory
+        .quad verify_modern_healing
+        .quad verify_modern_sync
+        .quad verify_modern_device
+        .quad verify_modern_boot
+        .quad verify_modern_fs
 
-# Data section
 .section .data
-.align 8
-verify_state:
-    .quad 0    # Current verification state
-fs_enabled:
-    .quad 0    # Filesystem enabled flag
-
-# Messages
-verify_error_msg:
-    .ascii "Verification chain failed\r\n\0"
-
-# External functions
-.extern init_h2_fs, h2_check_enabled
-
-# Function stubs (to be implemented)
-.text
-check_fs_boot_param:
-    ret
-check_fs_config_file:
-    ret
-verify_fs_state:
-    ret
+    .align 8
+    modern_system_state:
+        .quad 0

@@ -2,7 +2,7 @@
 ####     An ASM image for Docker hosting. 
 
 # Live Neural System (D0)
-> A self-learning, self-healing x86_64 assembly ProxMOx like OS with neural network integration
+> A self-learning, self-healing x86_64 assembly ProxMox like OS with neural network integration
 
 ## 🧬 Overview
 D0 is an experimental assembly-level system that combines neural network capabilities with low-level system operations. 
